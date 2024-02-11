@@ -1,0 +1,75 @@
+﻿@page "/register"
+@using SuperDigito.Repository
+@using SuperDigito.Models
+@inject ILoginRepository LoginRepository
+@inject NavigationManager NavigationManager
+@using System.ComponentModel.DataAnnotations
+
+<div class="card mx-auto" style="max-width: 400px;">
+    <div class="card-body">
+        <h1 class="text-center">Registro</h1>
+
+        @if (errorMessage != null)
+        {
+            <div class="alert alert-danger">@errorMessage</div>
+        }
+
+        <EditForm Model="@registerModel" OnValidSubmit="RegisterUser">
+            <div class="form-group my-3">
+                <InputText class="form-control" id="user" @bind-Value="registerModel.User" Placeholder="Usuario" />
+                <ValidationMessage For="@(() => registerModel.User)" />
+            </div>
+            <div class="form-group my-3">
+                <InputText type="password" class="form-control" id="password" @bind-Value="registerModel.Password" Placeholder="Contraseña" />
+                <ValidationMessage For="@(() => registerModel.Password)" />
+            </div>
+            <div class="form-group my-3">
+                <InputText type="password" class="form-control" id="confirmPassword" @bind-Value="confirmPassword" Placeholder="Contraseña" />
+                <ValidationMessage For="@(() => registerModel.Password)" />
+            </div>
+            <DataAnnotationsValidator />
+
+            <div class="text-center my-3">
+                <button type="submit" class="btn btn-primary">Registrarse</button>
+            </div>
+        </EditForm>
+    </div>
+</div>
+
+@code {
+    private Models.Login registerModel = new Models.Login();
+    private string confirmPassword;
+    private string errorMessage;
+
+    private async Task RegisterUser()
+    {
+        try
+        {
+            if (registerModel.Password != confirmPassword)
+            {
+                errorMessage = "Las contraseñas no coinciden";
+                return;
+            }
+
+            var existingUsers = await LoginRepository.GetLogins();
+            var existingUser = existingUsers.FirstOrDefault(u => u.User == registerModel.User);
+
+            if (existingUser != null)
+            {
+                errorMessage = "El usuario ya existe";
+                return;
+            }
+
+
+            var newLogin = new Models.Login { User = registerModel.User, Password = registerModel.Password };
+            await LoginRepository.CreateLogin(newLogin);
+
+            NavigationManager.NavigateTo("/login");
+
+        }
+        catch (Exception ex)
+        {
+            
+        }
+    }
+}

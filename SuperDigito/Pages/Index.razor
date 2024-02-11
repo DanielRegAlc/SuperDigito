@@ -1,0 +1,18 @@
+﻿@page "/"
+@inject NavigationManager NavigationManager
+@inject IHttpContextAccessor HttpContextAccessor
+
+@code {
+    protected override void OnInitialized()
+    {
+        try
+        {
+            HttpContextAccessor.HttpContext.Session.SetString("UserId", "");
+            NavigationManager.NavigateTo("/login");
+        }
+        catch(Exception ex)
+        {
+            
+        }
+    }
+}

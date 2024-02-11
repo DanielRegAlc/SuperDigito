@@ -1,0 +1,168 @@
+﻿@page "/calculate"
+@using SuperDigito.Repository
+@inject IHistoryRepository HistoryRepository
+@inject NavigationManager NavigationManager
+@inject IHttpContextAccessor HttpContextAccessor
+
+<h1 class="text-center">Calcular</h1>
+
+<div class="d-flex justify-content-center">
+    <div class="input-group mb-3">
+        <span class="input-group-text" id="numberInput">Ingrese un número:</span>
+        <input type="number" class="form-control" aria-label="Number input" aria-describedby="numberInput" @bind="number" />
+        <button class="btn btn-primary" @onclick="CalculateSuperDigit">Calcular</button>
+    </div>
+</div>
+
+@if (superDigitResult != null)
+{
+    <div class="mt-3 text-center">
+        <p>Resultado:</p>
+        <h2>@superDigitResult</h2>
+    </div>
+}
+
+<hr />
+
+<h2 class="text-center">Historial de Registros</h2>
+
+<div class="table-responsive">
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th scope="col">Número</th>
+                <th scope="col">Resultado</th>
+                <th scope="col">Fecha y Hora</th>
+                <th scope="col">Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var history in histories)
+            {
+                <tr>
+                    <td>@history.Number</td>
+                    <td>@history.Result</td>
+                    <td>@history.DateAndTime</td>
+                    <td>
+                        <button class="btn btn-danger" @onclick="() => DeleteHistory(history.HistoryId)">Eliminar</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+<div class="text-center mt-3">
+    <button class="btn btn-danger" @onclick="DeleteAllHistory">Eliminar Historial</button>
+</div>
+@code {
+    private int number;
+    private int superDigitResult;
+    private List<Models.History> histories = new List<Models.History>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            histories = await HistoryRepository.GetHistoriesByUser(CurrentUserId());
+        }
+        catch
+        {
+
+        }
+    }
+
+    private async Task CalculateSuperDigit()
+    {
+        try
+        {
+            superDigitResult = CalculateSuperDigit(number);
+
+            var history = new Models.History
+                {
+                    UserId = CurrentUserId(),
+                    Number = number,
+                    Result = superDigitResult,
+                    DateAndTime = DateTime.Now
+                };
+
+            await HistoryRepository.CreateHistory(history);
+
+            histories = await HistoryRepository.GetHistoriesByUser(CurrentUserId());
+        }
+        catch
+        {
+
+        }
+    }
+
+    private async Task DeleteAllHistory()
+    {
+        try
+        {
+            await HistoryRepository.DeleteHistoriesByUser(CurrentUserId());
+            histories.Clear();
+        }
+        catch
+        {
+
+        }
+    }
+
+    private async Task DeleteHistory(int historyId)
+    {
+        try
+        {
+            await HistoryRepository.DeleteHistory(historyId);
+
+            var historyToDelete = histories.FirstOrDefault(h => h.HistoryId == historyId);
+            if (historyToDelete != null)
+            {
+                histories.Remove(historyToDelete);
+            }
+        }
+        catch (Exception ex)
+        {
+        }
+    }
+
+
+    private int CalculateSuperDigit(int number)
+    {
+        try
+        {
+            string numberString = number.ToString();
+
+            while (numberString.Length > 1)
+            {
+                int sum = 0;
+                foreach (char digitChar in numberString)
+                {
+                    int digit = digitChar - '0';
+                    sum += digit;
+                }
+                numberString = sum.ToString();
+            }
+            return int.Parse(numberString);
+
+        }
+        catch
+        {
+            throw;
+        }
+    }
+
+    private int CurrentUserId()
+    {
+        try
+        {
+            var userIdString = HttpContextAccessor.HttpContext.Session.GetString("UserId");
+            int.TryParse(userIdString, out int userId);
+            return userId;
+        }
+        catch
+        {
+            throw;
+        }
+    }
+}
